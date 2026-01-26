@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 import threading
 import queue
+from tkinter import filedialog, messagebox
 
 from Audio_to_Speech import LiveSpeechRecorder
 
@@ -37,6 +38,13 @@ class SpeechNotetakerUI:
             state=tk.DISABLED
         )
         self.stop_btn.pack(side=tk.LEFT)
+        
+        self.save_btn = ttk.Button(
+        button_frame,
+        text="Save Notes",
+        command=self.save_notes
+        )
+        self.save_btn.pack(side=tk.LEFT, padx=10)
 
         ttk.Label(self.root, text="Live Speech").pack()
         self.live_text = tk.Text(self.root, height=10)
@@ -45,6 +53,13 @@ class SpeechNotetakerUI:
         ttk.Label(self.root, text="Cleaned Notes").pack()
         self.notes_text = tk.Text(self.root, height=15)
         self.notes_text.pack(fill=tk.BOTH, padx=10, pady=5)
+        
+        self.status_label = ttk.Label(
+        self.root,
+        text="Idle",
+        foreground="gray"
+        )
+        self.status_label.pack(pady=5)
 
 
     def start_recording(self):
@@ -53,6 +68,12 @@ class SpeechNotetakerUI:
 
         self.start_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
+        
+        self.status_label.config(
+        text="Recording... Speak Into Microphone",
+        foreground="green"
+        )
+        
         self.recorder.text_on = self.enqueue_live_text
 
         self.recording_thread = threading.Thread(
@@ -81,8 +102,47 @@ class SpeechNotetakerUI:
         self.start_btn.config(state=tk.NORMAL)
         self.stop_btn.config(state=tk.DISABLED)
 
+        self.status_label.config(
+        text="Recording stopped. Transcribing...",
+        foreground="orange"
+        )
+
+        self.root.update_idletasks()
         notes = self.recorder.stop_recording()
         self.notes_text.insert(tk.END, notes)
+        
+        # Finished Transcription
+        self.status_label.config(
+        text="Finished!",
+        foreground="Green"
+        )
+        
+        # File Save Button Enabled
+        self.save_btn.config(state=tk.NORMAL)
+
+
+    def save_notes(self):
+        content = self.notes_text.get("1.0", tk.END).strip()
+
+        if not content:
+            messagebox.showwarning("Error", "No notes available to save.")
+            return
+
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text Files", "*.txt")],
+            title="Save Notes"
+            )
+        if not file_path:
+            return  # cancelled by user
+
+        try:
+            with open(file_path, "w", encoding="utf-8") as fsave:
+                fsave.write(content)
+            messagebox.showinfo("Saved", f"Notes saved to {file_path}.")
+                
+        except Exception:
+            messagebox.showerror("Error", f"Failed to save file:\n{Exception}")
 
 
 
@@ -90,8 +150,3 @@ if __name__ == "__main__":
     root = tk.Tk()
     app = SpeechNotetakerUI(root)
     root.mainloop()
-
-
-
-
-# C:\Users\rajit\AppData\Local\Programs\Python\Python311\python.exe "c:/Speech Notetaker/main_UI.py"
