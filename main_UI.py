@@ -16,8 +16,11 @@ class SpeechNotetakerUI:
         self.recorder = LiveSpeechRecorder()
         self.recording_thread = None
         self.ui_queue = queue.Queue()
+        self.full_transcript = ""
+
         self.process_ui_queue()
         self.make_buttons()
+
 
 
     def make_buttons(self):
@@ -29,6 +32,7 @@ class SpeechNotetakerUI:
             text="Start Recording",
             command=self.start_recording
         )
+        
         self.start_btn.pack(side=tk.LEFT, padx=10)
 
         self.stop_btn = ttk.Button(
@@ -45,6 +49,8 @@ class SpeechNotetakerUI:
         command=self.save_notes
         )
         self.save_btn.pack(side=tk.LEFT, padx=10)
+        self.save_btn.config(state=tk.DISABLED)
+
 
         ttk.Label(self.root, text="Live Speech").pack()
         self.live_text = tk.Text(self.root, height=10)
@@ -63,9 +69,6 @@ class SpeechNotetakerUI:
 
 
     def start_recording(self):
-        self.live_text.delete("1.0", tk.END)
-        self.notes_text.delete("1.0", tk.END)
-
         self.start_btn.config(state=tk.DISABLED)
         self.stop_btn.config(state=tk.NORMAL)
         
@@ -93,6 +96,7 @@ class SpeechNotetakerUI:
     def process_ui_queue(self):
         while not self.ui_queue.empty():
             text = self.ui_queue.get()
+            self.full_transcript += text + " " # include previous text
             self.live_text.insert(tk.END, text + "\n")
             self.live_text.see(tk.END)
         self.root.after(100, self.process_ui_queue)
@@ -103,21 +107,16 @@ class SpeechNotetakerUI:
         self.stop_btn.config(state=tk.DISABLED)
 
         self.status_label.config(
-        text="Recording stopped. Transcribing...",
-        foreground="orange"
+            text="Recording stopped. Processing ...",
+            foreground="orange"
         )
-
         self.root.update_idletasks()
-        notes = self.recorder.stop_recording()
-        self.notes_text.insert(tk.END, notes)
+
+        threading.Thread(
+            target=self.finish_transcription,
+            daemon=True
+        ).start()
         
-        # Finished Transcription
-        self.status_label.config(
-        text="Finished!",
-        foreground="Green"
-        )
-        
-        # File Save Button Enabled
         self.save_btn.config(state=tk.NORMAL)
 
 
@@ -144,6 +143,19 @@ class SpeechNotetakerUI:
         except Exception:
             messagebox.showerror("Error", f"Failed to save file:\n{Exception}")
 
+
+    def finish_transcription(self):
+        cleaned_notes = self.recorder.stop_recording()
+        self.root.after(0, lambda: self.on_transcription_done(cleaned_notes)) # result to UI thread
+
+
+    def on_transcription_done(self, notes):
+        self.notes_text.insert(tk.END, notes + "\n")
+        self.status_label.config(
+            text="Finished!",
+            foreground="green"
+        )
+        self.save_btn.config(state=tk.NORMAL)
 
 
 if __name__ == "__main__":
