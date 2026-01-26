@@ -38,7 +38,6 @@ class LiveSpeechRecorder:
 
 
     def start_recording(self):
-        print("Speak to mic (click stop to finish)")
         self.is_recording = True
 
         # open mic stream
