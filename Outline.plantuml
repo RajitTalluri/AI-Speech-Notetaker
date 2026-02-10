@@ -1,0 +1,29 @@
+@startuml Speech Notetaker Outline
+
+actor User
+
+User --> (Program Begins) : Launch application
+
+(Program Begins) --> (UI Display) : Main Thread\nInitialize UI
+(Program Begins) --> (Microphone) : Main Thread\nInitialize audio thread
+(Program Begins) --> (Real-Time Transcription) : Main Thread\nInitialize transcription thread
+
+
+User --> (Microphone) : User speaks
+
+(Microphone) --> (Audio Queue) : Thread 1\nSend audio chunks
+
+(Audio Queue) --> (Real-Time Transcription) : Thread 2\nOpneAI Whisper transcribes
+(Real-Time Transcription) --> (Text Queue) : Thread 2\nSend text chunks
+
+(Text Queue) --> (UI Display) : Main Thread\nAppend text in real time
+
+(UI Display) --> (Cleaned Notes) : When Stopped\nSend full transcript to Ollama Phi-3\nwith custom prompt
+(Cleaned Notes) --> (Save Text) : Option to save cleaned notes to .txt file
+
+package "Notes" {
+  (Python 3.10 / 3.11 supported)
+  (Ollama Phi-3 on local machine)
+}
+
+@enduml
