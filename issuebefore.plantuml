@@ -1,0 +1,25 @@
+@startuml Stop Recording
+
+actor User
+participant "Main Thread" as Main
+participant "Audio Stream" as Stream
+participant "Recording Thread" as RecThread
+participant "Whisper Worker" as Whisper
+
+User -> Main : Click STOP
+
+Main -> Main : is_recording = False
+Main -> Stream : stop()
+Audio Stream -> Stream : Unblocks queue.get()
+
+Main -> RecThread : Drain remaining audio chunks
+Main -> RecThread : Send sentinel signal
+
+RecThread -> RecThread : Check flag and exit loop
+RecThread -> Whisper : Finish processing last chunks
+
+Whisper -> Main : Processing complete
+
+Main -> Main : Shutdown complete ✓
+
+@enduml

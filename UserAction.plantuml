@@ -1,0 +1,17 @@
+@startuml
+
+[*] --> State1
+State1 : User Starts Program
+State1 --> State2 : User clicks "Start Recording"
+State2 : Recording in Progress, Audio being transcribed, Live text displayed in UI
+State2 --> State3 : User clicks "Stop Recording"
+State3 : Recording Stopped, Final transcription sent to AI for cleanup
+State4 --> State2 : User can record again to append text
+State3 --> State4 : Processing complete, Cleaned notes displayed in UI
+State4 : Cleaned notes displayed in UI, Option to save notes to .txt file
+State4 --> State5 : User clicks "Save Notes"
+State5 : Cleaned notes saved to .txt file of user choosing
+
+
+
+@enduml

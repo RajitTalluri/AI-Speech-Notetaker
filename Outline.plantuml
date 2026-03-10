@@ -2,28 +2,34 @@
 
 actor User
 
-User --> (Program Begins) : Launch application
+User --> (Main Thread "UI") : Launch application\n Initialize
 
-(Program Begins) --> (UI Display) : Main Thread\nInitialize UI
-(Program Begins) --> (Microphone) : Main Thread\nInitialize audio thread
-(Program Begins) --> (Real-Time Transcription) : Main Thread\nInitialize transcription thread
+(Main Thread "UI") --> (UI Display) : Main Thread\nInitialize UI
+(Main Thread "UI") --> (Recording Thread) :  On start_recording\n initializes 
+(Main Thread "UI") --> (Transcription Thread) :  On stop_recording\n initializes 
 
+(Recording Thread) --> (Sound Device Thread) : Initializes
+(Recording Thread) --> (Whisper Thread) : Initializes
+(Sound Device Thread) --> [Audio Queue] : Sends audio chunks
+[Audio Queue] --> (Sound Device Thread) : Dequeues
+(Sound Device Thread) --> [Transcription Queue] : If is_recording True\n enqueus 
 
-User --> (Microphone) : User speaks
+[Transcription Queue] --> (Whisper Thread)  : Dequeues if audio chunks available
+(Whisper Thread) --> [Live Text UI Queue] : Enqueus transcribed audio chunks
+(Whisper Thread) --> [saved_block] : Appends all transcribed text \n blocks in order
+[saved_block] --> (Transcription Thread) : After Whisper finished \n dequeues
+(Transcription Thread) --> (API Request for Ollama qwen2.5) : Sent saved_block with prompt
+(API Request for Ollama qwen2.5) --> [cleaned_notes] : Receives API request\n refine() formates into cleaned notes
+[cleaned_notes] --> (Main Thread "UI") : Dequeues
+[Live Text UI Queue] --> (Main Thread "UI") : Dequeues
+(Main Thread "UI") --> (UI Display) : Appends live text in real time
 
-(Microphone) --> (Audio Queue) : Thread 1\nSend audio chunks
-
-(Audio Queue) --> (Real-Time Transcription) : Thread 2\nOpneAI Whisper transcribes
-(Real-Time Transcription) --> (Text Queue) : Thread 2\nSend text chunks
-
-(Text Queue) --> (UI Display) : Main Thread\nAppend text in real time
-
-(UI Display) --> (Cleaned Notes) : When Stopped\nSend full transcript to Ollama Phi-3\nwith custom prompt
-(Cleaned Notes) --> (Save Text) : Option to save cleaned notes to .txt file
+(cleaned_notes) --> (UI Display) : Displays cleaned notes
+(cleaned_notes) --> (Save Text) : Option to save cleaned notes to .txt file
 
 package "Notes" {
   (Python 3.10 / 3.11 supported)
-  (Ollama Phi-3 on local machine)
+  (Ollama qwen2.5-7b on local machine)
 }
 
 @enduml
